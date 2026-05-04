@@ -617,6 +617,7 @@ function updatePinPopup() {
       <div class="row"><span class="k">Dive angle</span><span class="v">${angleDeg}° from vertical</span></div>
       <div class="row"><span class="k">${deployLabel}</span><span class="${deployValClass}">${res.deployAlt.toFixed(0)} m</span></div>
       <div class="row"><span class="k">Slant from bus</span><span class="v">${Math.hypot(D, s.busAlt - res.groundAlt).toFixed(0)} m</span></div>
+      <div class="row"><span class="k">Slant bus → deploy</span><span class="v">${Math.hypot(res.dFall, s.busAlt - res.deployAlt).toFixed(0)} m</span></div>
       <div class="row"><span class="k">Slant from deploy</span><span class="v">${Math.hypot(res.dGlide, res.deployAlt - res.groundAlt).toFixed(0)} m</span></div>
       <div class="row"><span class="k">Bus</span><span class="v">${res.tBus.toFixed(1)}s</span></div>
       <div class="row"><span class="k">Falling</span><span class="v">${res.tFall.toFixed(1)}s</span></div>
