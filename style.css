@@ -43,6 +43,12 @@ main { flex: 1; position: relative; overflow: hidden; }
   font: 11px ui-monospace, monospace; pointer-events: none; z-index: 12; }
 #cursor-alt.hidden { display: none; }
 
+#trajectory-tip { position: absolute; pointer-events: none; z-index: 13;
+  background: rgba(74,222,128,0.95); color: #000; padding: 4px 8px;
+  border-radius: 4px; font: bold 11px ui-monospace, monospace;
+  white-space: nowrap; transform: translate(12px, -28px); }
+#trajectory-tip.hidden { display: none; }
+
 #hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
   background: #d96b1a; color: #fff; padding: 10px 18px; border-radius: 6px;
   font-size: 14px; font-weight: 600; pointer-events: none; opacity: 0;
@@ -70,3 +76,9 @@ body.mode-ring .bus-controls { display: none; }
 #pin-popup .v { color: #fff; }
 #pin-popup .v.good { color: #6cd66c; }
 #pin-popup .v.bad { color: #e35a5a; }
+#pin-popup details.extra { margin-top: 4px; padding-top: 4px;
+  border-top: 1px solid #444; }
+#pin-popup details.extra summary { color: #888; cursor: pointer;
+  user-select: none; font-size: 11px; padding: 2px 0; }
+#pin-popup details.extra summary:hover { color: #ccc; }
+#pin-popup details.extra[open] summary { color: #ccc; margin-bottom: 2px; }

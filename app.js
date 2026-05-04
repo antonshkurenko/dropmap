@@ -596,6 +596,7 @@ function updatePinPopup() {
     }
     const D = distM(res.J, target);
     const peak = res.terrainPeak != null ? res.terrainPeak.toFixed(0) : '?';
+    const s = state.settings;
     const isManual = res.deployMode === 'manual';
     const deployLabel = isManual ? 'Manual deploy' : 'Auto deploy';
     const deployValClass = isManual ? 'v good' : 'v';
@@ -612,17 +613,22 @@ function updatePinPopup() {
     popup.innerHTML = `
       <div class="title">${escapeHtml(target.name)}</div>
       <div class="row"><span class="k">Ground</span><span class="v">${res.groundAlt.toFixed(0)} m</span></div>
-      <div class="row"><span class="k">Path peak</span><span class="v">${peak} m</span></div>
       <div class="row"><span class="k">Pose</span><span class="v">${modeName}${modeLabel ? ' ('+modeLabel+')' : ''}</span></div>
       <div class="row"><span class="k">Dive angle</span><span class="v">${angleDeg}° from vertical</span></div>
       <div class="row"><span class="k">${deployLabel}</span><span class="${deployValClass}">${res.deployAlt.toFixed(0)} m</span></div>
-      <div class="row"><span class="k">Distance</span><span class="v">${D.toFixed(0)} m</span></div>
-      <div class="row"><span class="k">Freefall ⇣</span><span class="v">${res.dFall.toFixed(0)} m</span></div>
-      <div class="row"><span class="k">Glide →</span><span class="v">${res.dGlide.toFixed(0)} m</span></div>
+      <div class="row"><span class="k">Slant from bus</span><span class="v">${Math.hypot(D, s.busAlt - res.groundAlt).toFixed(0)} m</span></div>
+      <div class="row"><span class="k">Slant from deploy</span><span class="v">${Math.hypot(res.dGlide, res.deployAlt - res.groundAlt).toFixed(0)} m</span></div>
       <div class="row"><span class="k">Bus</span><span class="v">${res.tBus.toFixed(1)}s</span></div>
       <div class="row"><span class="k">Falling</span><span class="v">${res.tFall.toFixed(1)}s</span></div>
       <div class="row"><span class="k">Gliding</span><span class="v">${res.tGlide.toFixed(1)}s</span></div>
       <div class="row"><span class="k">Total</span><span class="v good">${res.total.toFixed(1)}s</span></div>
+      <details class="extra">
+        <summary>Extra</summary>
+        <div class="row"><span class="k">Path peak</span><span class="v">${peak} m</span></div>
+        <div class="row"><span class="k">Distance</span><span class="v">${D.toFixed(0)} m</span></div>
+        <div class="row"><span class="k">Freefall ⇣</span><span class="v">${res.dFall.toFixed(0)} m</span></div>
+        <div class="row"><span class="k">Glide →</span><span class="v">${res.dGlide.toFixed(0)} m</span></div>
+      </details>
       ${suggestionHtml}`;
   } else {
     // Ring mode: show terrain at center + reachability summary
@@ -846,6 +852,7 @@ canvas.addEventListener('mousemove', e => {
       el.classList.remove('hidden');
     }
   }
+  updateTrajectoryTip(sx, sy);
   if (runtime.mouseDown) {
     const dx = sx - runtime.mouseDown.sx, dy = sy - runtime.mouseDown.sy;
     if (Math.hypot(dx, dy) > DRAG_THRESHOLD) runtime.mouseDown.moved = true;
@@ -942,7 +949,65 @@ window.addEventListener('keydown', e => {
 });
 canvas.addEventListener('mouseleave', () => {
   $('cursor-alt').classList.add('hidden');
+  $('trajectory-tip').classList.add('hidden');
 });
+
+// While the cursor is near the freefall (J→G) or glide (G→T) segment, show
+// the slant distance from that point to the target — i.e., what the in-game
+// marker should read at this point during the drop. Lets you calibrate
+// mid-air against the trajectory the optimizer chose.
+function updateTrajectoryTip(sx, sy) {
+  const tip = $('trajectory-tip');
+  if (state.mode !== 'bus' || !state.busStart || !state.busEnd) {
+    tip.classList.add('hidden'); return;
+  }
+  const target = selectedPin();
+  if (!target) { tip.classList.add('hidden'); return; }
+  const res = computeOptimal(state.busStart, state.busEnd, target, target.z || 0);
+  if (!res.reachable) { tip.classList.add('hidden'); return; }
+
+  const Jp = mapToScreen(res.J.x, res.J.y);
+  const Gp = mapToScreen(res.G.x, res.G.y);
+  const Tp = mapToScreen(target.x, target.y);
+  const fall = projectOntoSegment(sx, sy, Jp, Gp);
+  const glide = projectOntoSegment(sx, sy, Gp, Tp);
+  const HOVER_PX = 10;
+  const onFall  = fall.dist  <= HOVER_PX;
+  const onGlide = glide.dist <= HOVER_PX;
+  if (!onFall && !onGlide) { tip.classList.add('hidden'); return; }
+
+  // Pick the closer line.
+  const useFall = onFall && (!onGlide || fall.dist <= glide.dist);
+  const seg = useFall ? fall : glide;
+  // Interpolate altitude along the chosen segment.
+  const startAlt = useFall ? state.settings.busAlt : res.deployAlt;
+  const endAlt   = useFall ? res.deployAlt        : res.groundAlt;
+  const alt = startAlt + seg.t * (endAlt - startAlt);
+  // Position on the segment in map coords.
+  const sa = useFall ? res.J : res.G;
+  const sb = useFall ? res.G : target;
+  const px = sa.x + seg.t * (sb.x - sa.x);
+  const py = sa.y + seg.t * (sb.y - sa.y);
+  const horiz_m = pxToM(Math.hypot(target.x - px, target.y - py));
+  const slant = Math.hypot(horiz_m, alt - res.groundAlt);
+
+  tip.textContent = `to marker: ${slant.toFixed(0)} m  (alt ${alt.toFixed(0)} m)`;
+  tip.style.left = sx + 'px';
+  tip.style.top  = sy + 'px';
+  tip.classList.remove('hidden');
+}
+
+// Project screen point p onto screen segment a-b, return distance from p to
+// the projected point and the parameter t ∈ [0, 1] along the segment.
+function projectOntoSegment(px, py, a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len2 = dx * dx + dy * dy;
+  if (len2 < 1e-6) return { dist: Math.hypot(px - a.x, py - a.y), t: 0 };
+  let t = ((px - a.x) * dx + (py - a.y) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  const cx = a.x + t * dx, cy = a.y + t * dy;
+  return { dist: Math.hypot(px - cx, py - cy), t };
+}
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
   const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
