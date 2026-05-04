@@ -631,17 +631,20 @@ function updatePinPopup() {
       </details>
       ${suggestionHtml}`;
   } else {
-    // Ring mode: show terrain at center + reachability summary
+    // Ring mode: show terrain at center + auto-deploy reachable area.
+    // Auto-deploy fires at (local terrain + 100 m) above the deploy point's
+    // ground — there's no absolute altitude limit. The hull is empty only
+    // when surrounding terrain is too low to deploy above the target's
+    // altitude (vBudget ≤ 0 in every direction).
     const ground = terrainAltAt(target.x, target.y) + (target.z || 0);
-    const aboveCeiling = ground > state.settings.deployAlt;
-    if (aboveCeiling) {
+    const hull = computeReachableHull(target);
+    const maxR = pxToM(hull.reduce((m, p) => Math.max(m, p.r), 0));
+    if (maxR < 1) {
       popup.innerHTML = `
         <div class="title">${escapeHtml(target.name)}</div>
         <div class="row"><span class="k">Ground</span><span class="v">${ground.toFixed(0)} m</span></div>
-        <div class="row"><span class="v bad">Above auto-deploy ceiling</span></div>`;
+        <div class="row"><span class="v bad">No surrounding terrain high enough to glide here</span></div>`;
     } else {
-      const hull = computeReachableHull(target);
-      const maxR = pxToM(hull.reduce((m, p) => Math.max(m, p.r), 0));
       popup.innerHTML = `
         <div class="title">${escapeHtml(target.name)}</div>
         <div class="row"><span class="k">Ground</span><span class="v">${ground.toFixed(0)} m</span></div>
@@ -692,10 +695,7 @@ function drawRing() {
   if (state.mode !== 'ring') return;
   const center = selectedPin();
   if (!center) return;
-  const s = state.settings;
-  const groundAlt = terrainAltAt(center.x, center.y) + (center.z || 0);
-  const aboveCeiling = groundAlt > s.deployAlt;
-  const hull = aboveCeiling ? [] : computeReachableHull(center);
+  const hull = computeReachableHull(center);
   const maxR = hull.reduce((m, p) => Math.max(m, p.r), 0);
   const cs = mapToScreen(center.x, center.y);
   if (maxR > 0) {
