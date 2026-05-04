@@ -29,6 +29,9 @@ main { flex: 1; position: relative; overflow: hidden; }
 .panel.hidden { display: none; }
 .panel h3 { margin: 0 0 8px; font-size: 14px; }
 .panel .hint { font-size: 11px; color: #888; margin: 8px 0 0; }
+.panel .danger { width: 100%; margin-top: 12px; background: #2e2e2e;
+  border-color: #5a2222; color: #e35a5a; font-size: 12px; }
+.panel .danger:hover { background: #3a1f1f; color: #ff8a8a; }
 
 #pin-list { list-style: none; padding: 0; margin: 0; }
 #pin-list li { display: flex; align-items: center; gap: 6px; padding: 4px 0; }
