@@ -16,6 +16,93 @@
 //  12. Input handlers (mouse, keyboard)
 //  13. Wire-up & init
 
+// --- Translations ---
+const TRANSLATIONS = {
+  en: {
+    busRoute: 'Bus route', ring: 'Ring',
+    redrawBus: 'Redraw bus', clearBus: 'Clear bus',
+    reverseBusTitle: 'Swap start and end',
+    importPois: 'Import POIs', importPoisTitle: 'Add all known POIs as pins',
+    fit: 'Fit', fitTitle: 'Fit map to screen', pins: 'Pins',
+    resetAll: 'Reset everything', resetAllTitle: 'Clear all pins and the bus',
+    pinPanelHint: 'Double-click map to add. Click pin to select. Shift-click to delete.',
+    creditMap: 'Map & heightmap', patch: 'Patch',
+    // popup
+    ground: 'Ground', pose: 'Pose', diveAngle: 'Dive angle', fromVertical: 'from vertical',
+    autoDeploy: 'Auto deploy', manualDeploy: 'Manual deploy', aboveGround: 'above ground',
+    slantFromBus: 'Slant from bus', slantFromDeploy: 'Slant from deploy',
+    bus: 'Bus', falling: 'Falling', gliding: 'Gliding', total: 'Total', extra: 'Extra',
+    pathPeak: 'Path peak', distanceLbl: 'Distance', freefall: 'Freefall ⇣', glide: 'Glide →',
+    reach: 'Reach', deployAltAbs: 'Deploy alt (abs)',
+    unreachable: 'UNREACHABLE',
+    noTerrain: 'No surrounding terrain high enough to glide here',
+    // poses (key → Name / Label pairs)
+    headDownName: 'Head-down dive', headDownLabel: 'straight down',
+    steepName: 'Steep dive',        steepLabel: 'head-first',
+    skydiveName: 'Skydive',         skydiveLabel: 'normal pose',
+    forwardName: 'Forward dive',    forwardLabel: 'body angled',
+    // suggestion
+    betterSpots: (n, savings) => `💡 ${n} better spot${n === 1 ? '' : 's'} (best: −${savings}s) — click any ghost on the map`,
+    // hints
+    hintRedrawBus: 'Click "Redraw bus" to draw the bus path',
+    hintDropPinBus: 'Double-click the map to drop a pin, then click it to set as drop target',
+    hintDropPinRing: 'Double-click the map to drop a pin, then click it to set as ring center',
+    hintBusStart: 'Click to set BUS START (Esc to cancel)',
+    hintBusEnd: 'Click to set BUS END (Esc to cancel)',
+    imported: (n) => `Imported ${n} POI${n === 1 ? '' : 's'}`,
+    loadingMap: 'Loading map…',
+    // tooltips
+    tipDeploy: 'Altimeter reading at the deploy moment. Also: place an in-game marker on the GROUND directly under the deploy spot — distance to that marker reads this exact number when you should press deploy. (Geometrically: when you\'re directly above the deploy ground point, slant to ground = altitude above ground.)',
+    tipSlantBus: 'Place an in-game marker AT THE TARGET. The moment you press eject from the bus, the marker reads this 3D distance. Use as a sanity check that you\'re jumping at the right point on the bus.',
+    tipSlantDeploy: 'Place an in-game marker AT THE TARGET. The moment your glider opens, the marker reads this 3D distance. Use as a deploy trigger when watching distance to the target marker.',
+    // misc
+    toMarker: 'to marker', altimeter: 'altimeter', terrain: 'terrain',
+  },
+  uk: {
+    busRoute: 'Маршрут', ring: 'Кільце',
+    redrawBus: 'Перемалювати', clearBus: 'Очистити',
+    reverseBusTitle: 'Поміняти початок і кінець',
+    importPois: 'Імпорт POI', importPoisTitle: 'Додати всі відомі POI як точки',
+    fit: 'По центру', fitTitle: 'Підігнати мапу під екран', pins: 'Точки',
+    resetAll: 'Скинути все', resetAllTitle: 'Очистити всі точки й автобус',
+    pinPanelHint: 'Подвійний клік — додати точку. Клік — вибрати. Shift+клік — видалити.',
+    creditMap: 'Мапа та рельєф', patch: 'Патч',
+    ground: 'Земля', pose: 'Поза', diveAngle: 'Кут падіння', fromVertical: 'від вертикалі',
+    autoDeploy: 'Авто-розкриття', manualDeploy: 'Ручне розкриття', aboveGround: 'над землею',
+    slantFromBus: 'Похила від автобуса', slantFromDeploy: 'Похила від розкриття',
+    bus: 'Автобус', falling: 'Падіння', gliding: 'Планування', total: 'Всього', extra: 'Деталі',
+    pathPeak: 'Пік шляху', distanceLbl: 'Відстань', freefall: 'Падіння ⇣', glide: 'Планер →',
+    reach: 'Досяжність', deployAltAbs: 'Висота розкриття (абс)',
+    unreachable: 'НЕДОСЯЖНО',
+    noTerrain: 'Навколо немає рельєфу достатньої висоти',
+    headDownName: 'Стрімголов',     headDownLabel: 'прямо вниз',
+    steepName: 'Крутий',            steepLabel: 'головою вперед',
+    skydiveName: 'Вільне падіння',  skydiveLabel: 'звичайна поза',
+    forwardName: 'Уперед',          forwardLabel: 'тіло горизонтально',
+    betterSpots: (n, savings) => {
+      const word = n === 1 ? 'кращу точку' : (n >= 2 && n <= 4 ? 'кращих точки' : 'кращих точок');
+      return `💡 ${n} ${word} (краще: −${savings}с) — клікніть будь-який привид на мапі`;
+    },
+    hintRedrawBus: 'Натисніть «Перемалювати», щоб накреслити шлях автобуса',
+    hintDropPinBus: 'Подвійним кліком на мапі додайте точку, потім клацніть її, щоб призначити цільовою',
+    hintDropPinRing: 'Подвійним кліком на мапі додайте точку, потім клацніть її, щоб призначити центром кільця',
+    hintBusStart: 'Клацніть, щоб задати ПОЧАТОК (Esc — скасувати)',
+    hintBusEnd: 'Клацніть, щоб задати КІНЕЦЬ (Esc — скасувати)',
+    imported: (n) => `Імпортовано ${n} POI`,
+    loadingMap: 'Завантаження мапи…',
+    tipDeploy: 'Покази альтиметра в момент розкриття. Також: поставте мітку на ЗЕМЛІ під точкою розкриття — відстань до неї покаже саме це число у момент, коли треба розкривати парашут. (Геометрія: коли ви прямо над точкою, похила = висота над землею.)',
+    tipSlantBus: 'Поставте мітку В ЦІЛІ. У момент стрибка з автобуса гра показує саме цю похилу відстань. Перевірка, що ви стрибаєте у правильній точці маршруту.',
+    tipSlantDeploy: 'Поставте мітку В ЦІЛІ. У момент розкриття планера гра показує саме цю похилу відстань. Тригер для ручного розкриття.',
+    toMarker: 'до мітки', altimeter: 'альтиметр', terrain: 'рельєф',
+  },
+};
+
+function t(key, ...args) {
+  const dict = TRANSLATIONS[state.lang] || TRANSLATIONS.en;
+  const v = dict[key] ?? TRANSLATIONS.en[key] ?? key;
+  return typeof v === 'function' ? v(...args) : v;
+}
+
 // --- Constants ---
 const HEIGHTMAP_URL = 'data/heightmap.png';
 const LOCATIONS_URL = 'data/locations.json';
@@ -30,6 +117,7 @@ const PIN_COLORS = ['#e35a5a','#5aa6e3','#6cd66c','#e3c95a','#c97ae3','#5ae3c9']
 const RING_SEARCH_MAX_M = 800;
 const state = {
   mode: 'ring',
+  lang: (navigator.language || '').toLowerCase().startsWith('uk') ? 'uk' : 'en',
   pins: [],
   busStart: null,
   busEnd: null,
@@ -62,10 +150,10 @@ const ctx = canvas.getContext('2d');
 const $ = id => document.getElementById(id);
 // --- Storage ---
 function persist() {
-  const { mode, pins, busStart, busEnd, selectedPinId,
+  const { mode, lang, pins, busStart, busEnd, selectedPinId,
     settings, view } = state;
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    mode, pins, busStart, busEnd, selectedPinId,
+    mode, lang, pins, busStart, busEnd, selectedPinId,
     settings, view,
   }));
 }
@@ -86,7 +174,7 @@ function restore() {
 // fortnite-api.com map looked similar but had different padding and caused
 // a noticeable misalignment (water reading 20 m, etc.).
 async function loadMap() {
-  showHint('Loading map…');
+  showHint(t('loadingMap'));
   runtime.mapImage = await loadImage('data/map.png');
   hideHint();
   fitMap();
@@ -347,16 +435,14 @@ function _computeOptimal(busStart, busEnd, target, targetZ = 0) {
     if (r <= 1.5)  return 32 + (18 - 32) * (r - 0.41) / 1.09;
     return 0;
   }
-  // Label thresholds in trajectory angle from vertical (atan(ratio)):
-  //   <5°    Head-down dive (straight down)
-  //   5–15°  Steep dive
-  //   15–30° Skydive
-  //   >30°   Forward dive
-  function fallModeForRatio(r) {
-    if (r < 0.087) return { name: 'Head-down dive', label: 'straight down' };
-    if (r < 0.268) return { name: 'Steep dive',     label: 'head-first' };
-    if (r < 0.577) return { name: 'Skydive',        label: 'normal pose' };
-    return         { name: 'Forward dive',          label: 'body angled' };
+  // Label thresholds in trajectory angle from vertical (atan(ratio)).
+  // Returns a translation key — looked up at popup-render time so changing
+  // language doesn't require recomputing the optimizer.
+  function fallModeKeyForRatio(r) {
+    if (r < 0.087) return 'headDown';
+    if (r < 0.268) return 'steep';
+    if (r < 0.577) return 'skydive';
+    return 'forward';
   }
   const N_J = 160, N_DIR = 32, N_R = 6;
   const stepM = 10;
@@ -393,7 +479,7 @@ function _computeOptimal(busStart, busEnd, target, targetZ = 0) {
     const Vv = fallSpeedForRatio(ratio);
     if (Vv <= 0) return; // ratio > 1.5 — can't cover this horizontal in freefall
     const tF = altDrop / Vv;
-    const mode = fallModeForRatio(ratio);
+    const modeKey = fallModeKeyForRatio(ratio);
     const angleF = Math.atan(ratio);
     // Verify freefall path doesn't hit terrain mid-air.
     let peak = Gterrain;
@@ -420,7 +506,7 @@ function _computeOptimal(busStart, busEnd, target, targetZ = 0) {
         dFall: horizF_m, dGlide: horizG_m,
         J, G: { x: Gx, y: Gy },
         deployAlt: Galt, deployMode: 'auto',
-        fallAngle: angleF, fallMode: mode.name, fallModeLabel: mode.label,
+        fallAngle: angleF, fallModeKey: modeKey,
         terrainPeak: peak, groundAlt: TG,
       };
     }
@@ -589,8 +675,8 @@ function updatePinPopup() {
     if (!res.reachable) {
       popup.innerHTML = `
         <div class="title">${escapeHtml(target.name)}</div>
-        <div class="row"><span class="k">Ground</span><span class="v">${res.groundAlt.toFixed(0)} m</span></div>
-        <div class="row"><span class="v bad">UNREACHABLE</span></div>`;
+        <div class="row"><span class="k">${t('ground')}</span><span class="v">${res.groundAlt.toFixed(0)} m</span></div>
+        <div class="row"><span class="v bad">${t('unreachable')}</span></div>`;
       positionPopup(popup);
       return;
     }
@@ -598,64 +684,57 @@ function updatePinPopup() {
     const peak = res.terrainPeak != null ? res.terrainPeak.toFixed(0) : '?';
     const s = state.settings;
     const isManual = res.deployMode === 'manual';
-    const deployLabel = isManual ? 'Manual deploy' : 'Auto deploy';
+    const deployLabel = isManual ? t('manualDeploy') : t('autoDeploy');
     const deployValClass = isManual ? 'v good' : 'v';
     const angleDeg = res.fallAngle != null ? (res.fallAngle * 180 / Math.PI).toFixed(0) : '?';
-    const modeName = res.fallMode || 'Skydive';
-    const modeLabel = res.fallModeLabel || '';
+    const modeKey = res.fallModeKey || 'skydive';
+    const modeName = t(modeKey + 'Name');
+    const modeLabel = t(modeKey + 'Label');
     let suggestionHtml = '';
     const sugCount = runtime.suggestions.length;
     if (sugCount > 0) {
       const bestSavings = runtime.suggestions[0].savings.toFixed(1);
-      suggestionHtml = `<div class="suggest">
-        💡 ${sugCount} better spot${sugCount === 1 ? '' : 's'} (best: −${bestSavings}s) — click any ghost on the map</div>`;
+      suggestionHtml = `<div class="suggest">${t('betterSpots', sugCount, bestSavings)}</div>`;
     }
-    // Deploy altitude as in-game altimeter (AGL = above ground beneath you)
-    // and as absolute altitude. AGL is what you can verify against the
-    // in-game altimeter in real time.
+    // Deploy altitude as in-game altimeter (AGL = above ground beneath you).
     const G_terrain = res.G ? terrainAltAt(res.G.x, res.G.y) : 0;
     const deployAGL = res.deployAlt - G_terrain;
     popup.innerHTML = `
       <div class="title">${escapeHtml(target.name)}</div>
-      <div class="row"><span class="k">Ground</span><span class="v">${res.groundAlt.toFixed(0)} m</span></div>
-      <div class="row"><span class="k">Pose</span><span class="v">${modeName}${modeLabel ? ' ('+modeLabel+')' : ''}</span></div>
-      <div class="row"><span class="k">Dive angle</span><span class="v">${angleDeg}° from vertical</span></div>
-      <div class="row" title="Altimeter reading at the deploy moment. Also: place an in-game marker on the GROUND directly under the deploy spot — distance to that marker reads this exact number when you should press deploy. (Geometrically: when you're directly above the deploy ground point, slant to ground = altitude above ground.)"><span class="k">${deployLabel}</span><span class="${deployValClass}">${deployAGL.toFixed(0)} m above ground</span></div>
-      <div class="row" title="Place an in-game marker AT THE TARGET. The moment you press eject from the bus, the marker reads this 3D distance. Use as a sanity check that you're jumping at the right point on the bus."><span class="k">Slant from bus</span><span class="v">${Math.hypot(D, s.busAlt - res.groundAlt).toFixed(0)} m</span></div>
-      <div class="row" title="3D length of the freefall arc, from the bus jump-out point down to the in-air deploy point. Mostly informational."><span class="k">Slant bus → deploy</span><span class="v">${Math.hypot(res.dFall, s.busAlt - res.deployAlt).toFixed(0)} m</span></div>
-      <div class="row" title="Place an in-game marker AT THE TARGET. The moment your glider opens, the marker reads this 3D distance. Use as a deploy trigger when watching distance to the target marker."><span class="k">Slant from deploy</span><span class="v">${Math.hypot(res.dGlide, res.deployAlt - res.groundAlt).toFixed(0)} m</span></div>
-      <div class="row"><span class="k">Bus</span><span class="v">${res.tBus.toFixed(1)}s</span></div>
-      <div class="row"><span class="k">Falling</span><span class="v">${res.tFall.toFixed(1)}s</span></div>
-      <div class="row"><span class="k">Gliding</span><span class="v">${res.tGlide.toFixed(1)}s</span></div>
-      <div class="row"><span class="k">Total</span><span class="v good">${res.total.toFixed(1)}s</span></div>
+      <div class="row"><span class="k">${t('ground')}</span><span class="v">${res.groundAlt.toFixed(0)} m</span></div>
+      <div class="row"><span class="k">${t('pose')}</span><span class="v">${modeName} (${modeLabel})</span></div>
+      <div class="row"><span class="k">${t('diveAngle')}</span><span class="v">${angleDeg}° ${t('fromVertical')}</span></div>
+      <div class="row" title="${t('tipDeploy')}"><span class="k">${deployLabel}</span><span class="${deployValClass}">${deployAGL.toFixed(0)} m ${t('aboveGround')}</span></div>
+      <div class="row" title="${t('tipSlantBus')}"><span class="k">${t('slantFromBus')}</span><span class="v">${Math.hypot(D, s.busAlt - res.groundAlt).toFixed(0)} m</span></div>
+      <div class="row" title="${t('tipSlantDeploy')}"><span class="k">${t('slantFromDeploy')}</span><span class="v">${Math.hypot(res.dGlide, res.deployAlt - res.groundAlt).toFixed(0)} m</span></div>
+      <div class="row"><span class="k">${t('bus')}</span><span class="v">${res.tBus.toFixed(1)}s</span></div>
+      <div class="row"><span class="k">${t('falling')}</span><span class="v">${res.tFall.toFixed(1)}s</span></div>
+      <div class="row"><span class="k">${t('gliding')}</span><span class="v">${res.tGlide.toFixed(1)}s</span></div>
+      <div class="row"><span class="k">${t('total')}</span><span class="v good">${res.total.toFixed(1)}s</span></div>
       <details class="extra">
-        <summary>Extra</summary>
-        <div class="row"><span class="k">Deploy alt (abs)</span><span class="v">${res.deployAlt.toFixed(0)} m</span></div>
-        <div class="row"><span class="k">Path peak</span><span class="v">${peak} m</span></div>
-        <div class="row"><span class="k">Distance</span><span class="v">${D.toFixed(0)} m</span></div>
-        <div class="row"><span class="k">Freefall ⇣</span><span class="v">${res.dFall.toFixed(0)} m</span></div>
-        <div class="row"><span class="k">Glide →</span><span class="v">${res.dGlide.toFixed(0)} m</span></div>
+        <summary>${t('extra')}</summary>
+        <div class="row"><span class="k">${t('deployAltAbs')}</span><span class="v">${res.deployAlt.toFixed(0)} m</span></div>
+        <div class="row"><span class="k">${t('pathPeak')}</span><span class="v">${peak} m</span></div>
+        <div class="row"><span class="k">${t('distanceLbl')}</span><span class="v">${D.toFixed(0)} m</span></div>
+        <div class="row"><span class="k">${t('freefall')}</span><span class="v">${res.dFall.toFixed(0)} m</span></div>
+        <div class="row"><span class="k">${t('glide')}</span><span class="v">${res.dGlide.toFixed(0)} m</span></div>
       </details>
       ${suggestionHtml}`;
   } else {
     // Ring mode: show terrain at center + auto-deploy reachable area.
-    // Auto-deploy fires at (local terrain + 100 m) above the deploy point's
-    // ground — there's no absolute altitude limit. The hull is empty only
-    // when surrounding terrain is too low to deploy above the target's
-    // altitude (vBudget ≤ 0 in every direction).
     const ground = terrainAltAt(target.x, target.y) + (target.z || 0);
     const hull = computeReachableHull(target);
     const maxR = pxToM(hull.reduce((m, p) => Math.max(m, p.r), 0));
     if (maxR < 1) {
       popup.innerHTML = `
         <div class="title">${escapeHtml(target.name)}</div>
-        <div class="row"><span class="k">Ground</span><span class="v">${ground.toFixed(0)} m</span></div>
-        <div class="row"><span class="v bad">No surrounding terrain high enough to glide here</span></div>`;
+        <div class="row"><span class="k">${t('ground')}</span><span class="v">${ground.toFixed(0)} m</span></div>
+        <div class="row"><span class="v bad">${t('noTerrain')}</span></div>`;
     } else {
       popup.innerHTML = `
         <div class="title">${escapeHtml(target.name)}</div>
-        <div class="row"><span class="k">Ground</span><span class="v">${ground.toFixed(0)} m</span></div>
-        <div class="row"><span class="k">Reach</span><span class="v">${maxR.toFixed(0)} m</span></div>`;
+        <div class="row"><span class="k">${t('ground')}</span><span class="v">${ground.toFixed(0)} m</span></div>
+        <div class="row"><span class="k">${t('reach')}</span><span class="v">${maxR.toFixed(0)} m</span></div>`;
     }
   }
   positionPopup(popup);
@@ -855,7 +934,7 @@ canvas.addEventListener('mousemove', e => {
         m.y >= 0 && m.y < runtime.mapImage.height) {
       const alt = terrainAltAt(m.x, m.y);
       const el = $('cursor-alt');
-      el.textContent = `terrain: ${alt.toFixed(1)} m`;
+      el.textContent = `${t('terrain')}: ${alt.toFixed(1)} m`;
       el.classList.remove('hidden');
     }
   }
@@ -1015,7 +1094,7 @@ function updateTrajectoryTip(sx, sy) {
   // the in-game altimeter shows you mid-air at that location).
   const agl = Math.max(0, alt - terrainAltAt(px, py));
 
-  tip.textContent = `to marker: ${slant.toFixed(0)} m  ·  altimeter: ${agl.toFixed(0)} m`;
+  tip.textContent = `${t('toMarker')}: ${slant.toFixed(0)} m  ·  ${t('altimeter')}: ${agl.toFixed(0)} m`;
   tip.style.left = sx + 'px';
   tip.style.top  = sy + 'px';
   tip.classList.remove('hidden');
@@ -1068,25 +1147,14 @@ function showHint(msg) { const h = $('hint'); h.textContent = msg; h.classList.a
 function hideHint() { $('hint').classList.remove('show'); }
 function updateHint() {
   if (runtime.drawBusMode) {
-    showHint(runtime.drawBusFirst
-      ? 'Click to set BUS END (Esc to cancel)'
-      : 'Click to set BUS START (Esc to cancel)');
+    showHint(runtime.drawBusFirst ? t('hintBusEnd') : t('hintBusStart'));
     return;
   }
   if (state.mode === 'bus') {
-    if (!state.busStart || !state.busEnd) {
-      showHint('Click "Redraw bus" to draw the bus path');
-      return;
-    }
-    if (!state.selectedPinId) {
-      showHint('Double-click the map to drop a pin, then click it to set as drop target');
-      return;
-    }
+    if (!state.busStart || !state.busEnd) { showHint(t('hintRedrawBus')); return; }
+    if (!state.selectedPinId) { showHint(t('hintDropPinBus')); return; }
   } else if (state.mode === 'ring') {
-    if (!state.selectedPinId) {
-      showHint('Double-click the map to drop a pin, then click it to set as ring center');
-      return;
-    }
+    if (!state.selectedPinId) { showHint(t('hintDropPinRing')); return; }
   }
   hideHint();
 }
@@ -1163,6 +1231,36 @@ $('clear-bus').addEventListener('click', () => {
 $('toggle-pins').addEventListener('click', () => {
   $('pin-panel').classList.toggle('hidden');
 });
+$('lang-toggle').addEventListener('click', () => {
+  state.lang = state.lang === 'uk' ? 'en' : 'uk';
+  applyTranslations();
+  render();
+  persist();
+});
+
+// Apply translations to all static HTML strings (button labels, panel
+// headers, hints, titles, credits). JS-rendered strings (popup, hints,
+// trajectory tip) just call t() at render time and pick up the new lang.
+function applyTranslations() {
+  document.documentElement.lang = state.lang;
+  $('mode-bus').textContent = t('busRoute');
+  $('mode-ring').textContent = t('ring');
+  $('redraw-bus').textContent = t('redrawBus');
+  $('reverse-bus').title = t('reverseBusTitle');
+  $('clear-bus').textContent = t('clearBus');
+  $('import-pois').textContent = t('importPois');
+  $('import-pois').title = t('importPoisTitle');
+  $('fit-map').textContent = t('fit');
+  $('fit-map').title = t('fitTitle');
+  $('toggle-pins').textContent = t('pins');
+  $('reset-all').textContent = t('resetAll');
+  $('reset-all').title = t('resetAllTitle');
+  $('pin-panel').querySelector('h3').textContent = t('pins');
+  $('pin-panel').querySelector('p.hint').textContent = t('pinPanelHint');
+  $('credit-map').textContent = t('creditMap');
+  $('credit-patch').textContent = t('patch');
+  $('lang-toggle').textContent = state.lang === 'uk' ? 'EN' : 'UK';
+}
 $('fit-map').addEventListener('click', () => { fitMap(); render(); persist(); });
 $('reset-all').addEventListener('click', () => {
   state.pins = [];
@@ -1200,11 +1298,12 @@ function importPois() {
   renderPinList();
   render();
   persist();
-  showHint(`Imported ${added} POI${added === 1 ? '' : 's'}`);
+  showHint(t('imported', added));
   setTimeout(() => updateHint(), 1500);
 }
 // --- Init ---
 restore();
+applyTranslations();
 setMode(state.mode);
 renderPinList();
 resizeCanvas();

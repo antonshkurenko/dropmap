@@ -46,6 +46,9 @@ main { flex: 1; position: relative; overflow: hidden; }
   border-radius: 4px; font: 11px ui-monospace, monospace; }
 #credits a { color: #5aa6e3; text-decoration: none; }
 #credits a:hover { text-decoration: underline; color: #ffd84a; }
+#credits button { background: transparent; border: 1px solid #555; color: #aaa;
+  padding: 1px 6px; font: inherit; cursor: pointer; border-radius: 3px; }
+#credits button:hover { color: #fff; border-color: #888; }
 
 #cursor-alt { position: absolute; bottom: 8px; left: 8px;
   background: rgba(0,0,0,0.7); color: #fff; padding: 4px 8px; border-radius: 4px;
