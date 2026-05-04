@@ -610,12 +610,17 @@ function updatePinPopup() {
       suggestionHtml = `<div class="suggest">
         💡 ${sugCount} better spot${sugCount === 1 ? '' : 's'} (best: −${bestSavings}s) — click any ghost on the map</div>`;
     }
+    // Deploy altitude as in-game altimeter (AGL = above ground beneath you)
+    // and as absolute altitude. AGL is what you can verify against the
+    // in-game altimeter in real time.
+    const G_terrain = res.G ? terrainAltAt(res.G.x, res.G.y) : 0;
+    const deployAGL = res.deployAlt - G_terrain;
     popup.innerHTML = `
       <div class="title">${escapeHtml(target.name)}</div>
       <div class="row"><span class="k">Ground</span><span class="v">${res.groundAlt.toFixed(0)} m</span></div>
       <div class="row"><span class="k">Pose</span><span class="v">${modeName}${modeLabel ? ' ('+modeLabel+')' : ''}</span></div>
       <div class="row"><span class="k">Dive angle</span><span class="v">${angleDeg}° from vertical</span></div>
-      <div class="row"><span class="k">${deployLabel}</span><span class="${deployValClass}">${res.deployAlt.toFixed(0)} m</span></div>
+      <div class="row"><span class="k">${deployLabel}</span><span class="${deployValClass}">${deployAGL.toFixed(0)} m above ground</span></div>
       <div class="row"><span class="k">Slant from bus</span><span class="v">${Math.hypot(D, s.busAlt - res.groundAlt).toFixed(0)} m</span></div>
       <div class="row"><span class="k">Slant bus → deploy</span><span class="v">${Math.hypot(res.dFall, s.busAlt - res.deployAlt).toFixed(0)} m</span></div>
       <div class="row"><span class="k">Slant from deploy</span><span class="v">${Math.hypot(res.dGlide, res.deployAlt - res.groundAlt).toFixed(0)} m</span></div>
@@ -625,6 +630,7 @@ function updatePinPopup() {
       <div class="row"><span class="k">Total</span><span class="v good">${res.total.toFixed(1)}s</span></div>
       <details class="extra">
         <summary>Extra</summary>
+        <div class="row"><span class="k">Deploy alt (abs)</span><span class="v">${res.deployAlt.toFixed(0)} m</span></div>
         <div class="row"><span class="k">Path peak</span><span class="v">${peak} m</span></div>
         <div class="row"><span class="k">Distance</span><span class="v">${D.toFixed(0)} m</span></div>
         <div class="row"><span class="k">Freefall ⇣</span><span class="v">${res.dFall.toFixed(0)} m</span></div>
@@ -1005,8 +1011,11 @@ function updateTrajectoryTip(sx, sy) {
   const py = sa.y + seg.t * (sb.y - sa.y);
   const horiz_m = pxToM(Math.hypot(target.x - px, target.y - py));
   const slant = Math.hypot(horiz_m, alt - res.groundAlt);
+  // AGL = altitude above the ground directly beneath this point (= what
+  // the in-game altimeter shows you mid-air at that location).
+  const agl = Math.max(0, alt - terrainAltAt(px, py));
 
-  tip.textContent = `to marker: ${slant.toFixed(0)} m  (alt ${alt.toFixed(0)} m)`;
+  tip.textContent = `to marker: ${slant.toFixed(0)} m  ·  altimeter: ${agl.toFixed(0)} m`;
   tip.style.left = sx + 'px';
   tip.style.top  = sy + 'px';
   tip.classList.remove('hidden');
