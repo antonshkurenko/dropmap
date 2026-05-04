@@ -621,9 +621,9 @@ function updatePinPopup() {
       <div class="row"><span class="k">Pose</span><span class="v">${modeName}${modeLabel ? ' ('+modeLabel+')' : ''}</span></div>
       <div class="row"><span class="k">Dive angle</span><span class="v">${angleDeg}° from vertical</span></div>
       <div class="row"><span class="k">${deployLabel}</span><span class="${deployValClass}">${deployAGL.toFixed(0)} m above ground</span></div>
-      <div class="row"><span class="k">Slant from bus</span><span class="v">${Math.hypot(D, s.busAlt - res.groundAlt).toFixed(0)} m</span></div>
-      <div class="row"><span class="k">Slant bus → deploy</span><span class="v">${Math.hypot(res.dFall, s.busAlt - res.deployAlt).toFixed(0)} m</span></div>
-      <div class="row"><span class="k">Slant from deploy</span><span class="v">${Math.hypot(res.dGlide, res.deployAlt - res.groundAlt).toFixed(0)} m</span></div>
+      <div class="row" title="3D distance to the target — what the in-game marker shows at the moment you press eject from the bus."><span class="k">Slant from bus</span><span class="v">${Math.hypot(D, s.busAlt - res.groundAlt).toFixed(0)} m</span></div>
+      <div class="row" title="3D length of the freefall arc, from the bus jump-out point down to where the glider opens."><span class="k">Slant bus → deploy</span><span class="v">${Math.hypot(res.dFall, s.busAlt - res.deployAlt).toFixed(0)} m</span></div>
+      <div class="row" title="3D distance to the target — what the in-game marker shows at the moment your glider opens (auto- or manual-deploy)."><span class="k">Slant from deploy</span><span class="v">${Math.hypot(res.dGlide, res.deployAlt - res.groundAlt).toFixed(0)} m</span></div>
       <div class="row"><span class="k">Bus</span><span class="v">${res.tBus.toFixed(1)}s</span></div>
       <div class="row"><span class="k">Falling</span><span class="v">${res.tFall.toFixed(1)}s</span></div>
       <div class="row"><span class="k">Gliding</span><span class="v">${res.tGlide.toFixed(1)}s</span></div>
