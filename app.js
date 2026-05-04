@@ -29,7 +29,7 @@ const PIN_COLORS = ['#e35a5a','#5aa6e3','#6cd66c','#e3c95a','#c97ae3','#5ae3c9']
 // Internal cap; the hull boundary itself is determined by terrain physics.
 const RING_SEARCH_MAX_M = 800;
 const state = {
-  mode: 'bus',
+  mode: 'ring',
   pins: [],
   busStart: null,
   busEnd: null,
@@ -931,14 +931,9 @@ canvas.addEventListener('mouseup', e => {
         target.y = drag.sug.y;
         _suggestionCache = null;
       }
-    } else if (drag.kind === 'pan') {
-      // empty click → add pin
-      const m = screenToMap(sx, sy);
-      addPin(m);
-      // newly added is last
-      state.selectedPinId = state.pins[state.pins.length - 1].id;
-      renderPinList();
     }
+    // Empty-area single click is intentionally a no-op (use double-click to
+    // add a pin) so accidental clicks don't drop random points.
   }
   persist();
   render();
@@ -947,6 +942,25 @@ canvas.addEventListener('mouseup', e => {
 window.addEventListener('keydown', e => {
   if (e.key === 'Escape' && runtime.drawBusMode) cancelBusDraw();
 });
+// Double-click on empty map to add a pin. Single-click is a no-op so that
+// stray clicks don't litter the map.
+canvas.addEventListener('dblclick', e => {
+  const sx = e.offsetX, sy = e.offsetY;
+  // Don't add a pin on top of an existing pin / bus handle / ghost.
+  if (hitTest(sx, sy)) return;
+  const map = runtime.mapImage;
+  if (!map) return;
+  const m = screenToMap(sx, sy);
+  // Only allow drops within the actual map image bounds.
+  if (m.x < 0 || m.y < 0 || m.x >= map.width || m.y >= map.height) return;
+  addPin(m);
+  state.selectedPinId = state.pins[state.pins.length - 1].id;
+  renderPinList();
+  render();
+  persist();
+  updateHint();
+});
+
 canvas.addEventListener('mouseleave', () => {
   $('cursor-alt').classList.add('hidden');
   $('trajectory-tip').classList.add('hidden');
@@ -1055,12 +1069,12 @@ function updateHint() {
       return;
     }
     if (!state.selectedPinId) {
-      showHint('Click empty map to drop a pin, then click it to set as drop target');
+      showHint('Double-click the map to drop a pin, then click it to set as drop target');
       return;
     }
   } else if (state.mode === 'ring') {
     if (!state.selectedPinId) {
-      showHint('Click empty map to drop a pin, then click it to set as ring center');
+      showHint('Double-click the map to drop a pin, then click it to set as ring center');
       return;
     }
   }
