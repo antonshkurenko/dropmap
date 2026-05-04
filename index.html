@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dropmap</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="topbar">
+  <div class="group modes">
+    <button id="mode-bus" class="active">Bus route</button>
+    <button id="mode-ring">Ring</button>
+  </div>
+
+  <div class="group bus-controls">
+    <button id="redraw-bus">Redraw bus</button>
+    <button id="reverse-bus" title="Swap start and end">⇄</button>
+    <button id="clear-bus">Clear bus</button>
+  </div>
+
+  <div class="group right">
+    <button id="import-pois" title="Add all known POIs as pins">Import POIs</button>
+    <button id="reset-all" title="Clear pins and bus">Reset</button>
+    <button id="fit-map" title="Fit map to screen">Fit</button>
+    <button id="toggle-pins">Pins</button>
+  </div>
+</header>
+
+<main>
+  <canvas id="map"></canvas>
+  <div id="pin-popup" class="hidden"></div>
+  <div id="cursor-alt" class="hidden"></div>
+
+  <aside id="pin-panel" class="panel hidden">
+    <h3>Pins</h3>
+    <ul id="pin-list"></ul>
+    <p class="hint">Click empty map to add. Click pin to select. Shift-click to delete.</p>
+  </aside>
+</main>
+
+<div id="hint"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
