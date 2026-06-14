@@ -20,7 +20,11 @@ Assets live under `https://www.embenco.nl/fndropcalc/{VERSION}/{MAPTYPE}/...`
   is not always present; Dropmap only uses `0`.
 
 Asset paths (mapType 0):
-- Heightmap (single file, native **1887×1887**): `/{VERSION}/0/heightmap.png`
+- Heightmap (single file): `/{VERSION}/0/heightmap.png`. **Format changed at
+  patch 41.00**: it's now **16-bit grayscale** (PIL mode `I;16`, native
+  ~2033×2033) where `altitude_cm = pixel − 32256` (sea level = 32256). Older
+  patches (≤40.40) served an RGB PNG (~1887×1887) encoding `altitude_cm =
+  (R<<8)|G` directly (sea = 0). Step 3 normalizes either into the repo format.
 - Locations / POIs: `/{VERSION}/0/data/locations.json`
 - Map tiles: `/{VERSION}/0/map/{z}/{x}/{y}.png`
 - Height tiles (not used by Dropmap): `/{VERSION}/0/height/{z}/{x}/{y}.png`
@@ -31,7 +35,11 @@ Tile grid is `2^z × 2^z` (z=1→2×2 … z=5→32×32), each tile 256×256.
 
 - `data/map.png` — **2048×2048**, the **zoom-3** tile grid (8×8 = 64 tiles)
   stitched together: tile `(x,y)` pasted at pixel `(x*256, y*256)`.
-- `data/heightmap.png` — Embenco's `heightmap.png` verbatim (pixels unchanged).
+- `data/heightmap.png` — heightmap in **RGB `(R<<8)|G` centimetre** encoding
+  (sea = 0), which app.js decodes via canvas `getImageData`. For patch ≥41.00
+  this is **converted** from Embenco's 16-bit grayscale (see step 3), not
+  verbatim. Native size is whatever Embenco serves — the app samples by
+  normalized fraction, so it need not match `map.png`.
 - `data/locations.json` — Embenco's `locations.json` verbatim.
 - `index.html` — patch number is the literal text right after
   `<span id="credit-patch">Patch</span>` (e.g. `40.40`). That's the only place
@@ -52,22 +60,34 @@ Use `curl -A "Mozilla/5.0"` for all requests. Tools: `python3` has PIL; there is
    (should be the most recent). If the latest equals the current patch, stop —
    nothing to do.
 
-3. **Download + stitch the new assets** into a temp dir:
+3. **Download + stitch + normalize the new assets** into a temp dir:
    - Download all 64 zoom-3 tiles `…/{V}/0/map/3/{x}/{y}.png` for x,y in 0..7.
-     Validate each is a 256×256 PNG. Stitch into a 2048×2048 RGBA image
-     (paste `(x,y)` at `(x*256, y*256)`).
-   - Download `…/{V}/0/heightmap.png` and `…/{V}/0/data/locations.json`.
+     Validate each is a 256×256 PNG. Stitch into a 2048×2048 **RGB** image
+     (paste `(x,y)` at `(x*256, y*256)`; the repo's `map.png` is RGB).
+   - Download `…/{V}/0/data/locations.json` (keep verbatim).
+   - Download `…/{V}/0/heightmap.png` and **normalize it to the repo's RGB cm
+     format** based on its PIL mode:
+     - 16-bit (`I;16`/`I`, patch ≥41.00): `cm = clip(pixel − 32256, 0, 0xFFFF)`,
+       then `R = (cm>>8)&0xFF, G = cm&0xFF, B = 0`; save RGB. (Encoding verified
+       against 40_40, which Embenco served in both formats — `cm = v16 − 32256`,
+       corr 0.99998, sea = 32256.)
+     - already RGB (older patches): use as-is.
+     Keep native dimensions — never resize the heightmap.
 
-4. **Compare against the committed files — only update what changed.** Use PIL
-   `ImageChops.difference(...).getbbox()` (None = pixel-identical) for the PNGs,
-   and a byte diff for `locations.json`. Embenco often keeps identical map data
-   across point releases (e.g. 40.20–40.40 were pixel-identical), so:
-   - If an asset is pixel/byte-identical to what's committed, **leave it** — do
-     not overwrite it (a re-encode produces different bytes for zero real change
-     and is pointless binary churn).
+4. **Compare against the committed files — only update what changed.** Compare
+   PNGs with **numpy**, NOT `ImageChops.difference(...).getbbox()` — on RGBA
+   images `getbbox()` defaults to `alpha_only=True`, so it bounds only the alpha
+   channel and falsely reports "identical" when just the RGB differs (this caused
+   a real false-negative on the 41.00 tiles). Use e.g.
+   `np.abs(np.asarray(a.convert("RGB")).astype(int) − np.asarray(b.convert("RGB")).astype(int)).max()`
+   (0 = identical). Compare the **normalized** heightmap (step 3 output) against
+   the committed one, and a byte diff for `locations.json`. Embenco sometimes
+   keeps identical map data across point releases (e.g. 40.20–40.40), so:
+   - If an asset is identical to what's committed, **leave it** — don't overwrite
+     it (a re-encode is pointless binary churn).
    - Only write `data/map.png` / `data/heightmap.png` / `data/locations.json`
-     that genuinely differ. Save the stitched map and the heightmap via PIL;
-     write `locations.json` as Embenco serves it (verbatim).
+     that genuinely differ. Save the stitched map and normalized heightmap via
+     PIL; write `locations.json` as Embenco serves it (verbatim).
 
 5. **Bump the label** in `index.html`: replace the old version literal after the
    `credit-patch` span with the new one.
@@ -79,7 +99,9 @@ Use `curl -A "Mozilla/5.0"` for all requests. Tools: `python3` has PIL; there is
 
 - Do not `git commit` or `git push` unless the user explicitly asks (per the
   user's global git rules).
-- Don't resize or re-encode the heightmap's pixels — the app reads its RGBA
-  values to compute altitude; resizing would corrupt the encoding.
-- Sanity-check before claiming an update: the new map/heightmap should be valid
-  images of the expected dimensions (2048×2048 and 1887×1887).
+- The committed heightmap must be RGB `(R<<8)|G` cm (sea = 0) — that's what
+  app.js decodes via canvas `getImageData`. **Never commit Embenco's raw 16-bit
+  heightmap**: canvas downsamples it to 8-bit and altitude breaks. Don't resize.
+- Sanity-check before claiming an update: `map.png` is 2048×2048; the heightmap
+  decodes to sane altitudes (sea = 0 m, peaks roughly 150–230 m) and its sea mask
+  (`cm == 0`) aligns with the map's water.
